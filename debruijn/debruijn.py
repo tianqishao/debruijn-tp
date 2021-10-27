@@ -68,11 +68,15 @@ def get_arguments():
 
 
 def read_fastq(fastq_file):
-    pass
-
-
+    with open(fastq_file,'r') as f:
+        for line in f:
+            yield next(f)[:-1]
+            next(f)
+            next(f)
+    
 def cut_kmer(read, kmer_size):
-    pass
+    for i in range(len(read)-kmer_size+1):
+        yield read[i:i+kmer_size+1]
 
 
 def build_kmer_dict(fastq_file, kmer_size):
@@ -162,7 +166,7 @@ def main():
     """
     # Get arguments
     args = get_arguments()
-
+    print(args.fastq_file)
     # Fonctions de dessin du graphe
     # A decommenter si vous souhaitez visualiser un petit 
     # graphe

@@ -66,17 +66,20 @@ def get_arguments():
                         help="Save graph as image (png)")
     return parser.parse_args()
 
-## 1-a:identification des k-mers unique
+#######################################
+# 1-a:identification des k-mers unique
+#######################################
 def read_fastq(fastq_file):
-    with open(fastq_file,'r') as f:
-        for line in f:
-            yield next(f)[:-1]
-            next(f)
-            next(f)
+    if(isfile(fastq_file)):
+        with open(fastq_file,'r') as f:
+            for line in f:
+                yield next(f).strip()
+                next(f)
+                next(f)
     
 def cut_kmer(read, kmer_size):
     for i in range(len(read)-kmer_size+1):
-        yield read[i:i+kmer_size+1]
+        yield read[i:i+kmer_size]
 
 def build_kmer_dict(fastq_file, kmer_size):
     kmer_dict = {}
@@ -87,31 +90,46 @@ def build_kmer_dict(fastq_file, kmer_size):
             else:
                 kmer_dict[j] += 1;
     return kmer_dict
+#######################################
 ## 1-b: construction de l'arbe de Debruijn
+#######################################
 
 def build_graph(kmer_dict):
     G = nx.Graph()
-    for kmer,poids in kmer_dict:
+    for kmer in kmer_dict.key():
         #eulerian(veritice are (k-1)-mers,edge are k-mers)
-
-        G.add_edge(kmer[:-1],kmer[1:],weight = poids)
+        #prefixe: kmer[:-1]
+        #suffixe: kmer[1:]
+        G.add_edge(kmer[:-1],kmer[1:],weight = kmer_dict[kmer])
     return G
-
+#######################################
 ## 2.Parcours du graphe de Debruijn
 #trois fonctions sont necessaires
+#######################################
 
 #2-1:prend en entrée un graphe et retourne une liste de noeuds d’entrée
-def get_starting_nodes():
-    pass
+def get_starting_nodes(G):
+    start = []
+    for node in G.nodes:
+        if not G.in_edges(node):
+            start.append(node)
+    return start
+
 #2-2:prend en entrée un graphe et retourne une liste de noeuds de sortie
-def get_sink_nodes():
-    pass
+def get_sink_nodes(G):
+    end = []
+    for node in G.nodes:
+        if not G.out_edges(node):
+            end.append(node)
+    return end
 #2-3:prend un graphe, une liste de noeuds d’entrée et une liste de sortie et retourne une liste de tuple(contig, longueur du contig)
 def get_contigs():
     pass
 
+
 def remove_paths(graph, path_list, delete_entry_node, delete_sink_node):
     pass
+
 
 def std(data):
     pass
@@ -190,7 +208,12 @@ def main():
     # Get arguments
     args = get_arguments()
     print(args)
-    
+
+    kmer_size = args.kmer_size
+    fastq_file = args.fastq_file
+    kmer_dict = build_kmer_dict(fastq_file,kmer_size)
+    graph = build_graph(kmer_dict)
+
     # Fonctions de dessin du graphe
     # A decommenter si vous souhaitez visualiser un petit 
     # graphe

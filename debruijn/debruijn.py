@@ -86,6 +86,7 @@ def build_kmer_dict(fastq_file, kmer_size):
                 kmer_dict[j] = 1;
             else:
                 kmer_dict[j] += 1;
+    return kmer_dict
 
 def build_graph(kmer_dict):
     G = nx.Graph()
@@ -174,6 +175,7 @@ def main():
     """
     # Get arguments
     args = get_arguments()
+    fastq_file = 'eva71_plus_perfect.fq'
     print(args.fastq_file)
     # Fonctions de dessin du graphe
     # A decommenter si vous souhaitez visualiser un petit 

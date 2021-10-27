@@ -87,14 +87,28 @@ def build_kmer_dict(fastq_file, kmer_size):
             else:
                 kmer_dict[j] += 1;
     return kmer_dict
+## 1-b: construction de l'arbe de Debruijn
 
 def build_graph(kmer_dict):
     G = nx.Graph()
     for kmer,poids in kmer_dict:
         #eulerian(veritice are (k-1)-mers,edge are k-mers)
+
         G.add_edge(kmer[:-1],kmer[1:],weight = poids)
     return G
 
+## 2.Parcours du graphe de Debruijn
+#trois fonctions sont necessaires
+
+#2-1:prend en entrée un graphe et retourne une liste de noeuds d’entrée
+def get_starting_nodes():
+    pass
+#2-2:prend en entrée un graphe et retourne une liste de noeuds de sortie
+def get_sink_nodes():
+    pass
+#2-3:prend un graphe, une liste de noeuds d’entrée et une liste de sortie et retourne une liste de tuple(contig, longueur du contig)
+def get_contigs():
+    pass
 
 def remove_paths(graph, path_list, delete_entry_node, delete_sink_node):
     pass
@@ -175,8 +189,8 @@ def main():
     """
     # Get arguments
     args = get_arguments()
-    fastq_file = 'eva71_plus_perfect.fq'
-    print(args.fastq_file)
+    print(args)
+    
     # Fonctions de dessin du graphe
     # A decommenter si vous souhaitez visualiser un petit 
     # graphe

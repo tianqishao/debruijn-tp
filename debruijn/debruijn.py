@@ -66,7 +66,7 @@ def get_arguments():
                         help="Save graph as image (png)")
     return parser.parse_args()
 
-
+## 1-a:identification des k-mers unique
 def read_fastq(fastq_file):
     with open(fastq_file,'r') as f:
         for line in f:
@@ -78,13 +78,21 @@ def cut_kmer(read, kmer_size):
     for i in range(len(read)-kmer_size+1):
         yield read[i:i+kmer_size+1]
 
-
 def build_kmer_dict(fastq_file, kmer_size):
-    pass
-
+    kmer_dict = {}
+    for i in read_fastq(fastq_file):
+        for j in cut_kmer(i,kmer_size):
+            if j not in kmer_dict:
+                kmer_dict[j] = 1;
+            else:
+                kmer_dict[j] += 1;
 
 def build_graph(kmer_dict):
-    pass
+    G = nx.Graph()
+    for kmer,poids in kmer_dict:
+        #eulerian(veritice are (k-1)-mers,edge are k-mers)
+        G.add_edge(kmer[:-1],kmer[1:],weight = poids)
+    return G
 
 
 def remove_paths(graph, path_list, delete_entry_node, delete_sink_node):

@@ -18,7 +18,7 @@ import os
 import sys
 import networkx as nx
 from operator import itemgetter
-import random
+import random as random
 random.seed(9001)
 from random import randint
 import statistics
@@ -104,13 +104,13 @@ def build_kmer_dict(fastq_file, kmer_size):
 fonction de construire une graphe orientee
 """
 def build_graph(kmer_dict):
-    G = nx.Graph()
-    for kmer in kmer_dict.key():
+    g = nx.DiGraph()
+    for kmer,poids in kmer_dict.items():
         #eulerian(veritice are (k-1)-mers,edge are k-mers)
         #prefixe: kmer[:-1]
         #suffixe: kmer[1:]
-        G.add_edge(kmer[:-1],kmer[1:],weight = kmer_dict[kmer])
-    return G
+        g.add_edge(kmer[:-1],kmer[1:],weight = poids)
+    return g
 #######################################
 ## 2.Parcours du graphe de Debruijn
 #trois fonctions sont necessaires
@@ -123,7 +123,8 @@ fonction de obtenir l'ensemble des noeuds d'entree
 def get_starting_nodes(G):
     start = []
     for node in G.nodes:
-        if not G.in_edges(node):
+        predess = G.predecessors(node)
+        if not list(predess): 
             start.append(node)
     return start
 
@@ -134,10 +135,11 @@ fonction de obtenir l'ensemble des noeuds de sortie
 def get_sink_nodes(G):
     end = []
     for node in G.nodes:
-        if not G.out_edges(node):
+        success = G.successors(node)
+        if not list(success): 
             end.append(node)
     return end
-    
+
 #2-3:prend un graphe, une liste de noeuds d’entrée et une liste de sortie et retourne une liste de tuple(contig, longueur du contig)
 def get_contigs(G,start,end):
     contigs = []
@@ -145,11 +147,11 @@ def get_contigs(G,start,end):
         for e in end:
             for path in nx.all_simple_paths(G,s,e):
                 cont = path[0]
-                for i in enumerate(path):
+                for i in path[1:]:
                     if i == 0:
                         cont = path[i]
                     else: 
-                        cont += path[i][-1]
+                        cont = cont + i[-1]
                 ##liste de tuple:[cont,len(cont)]
                 contigs.append((cont,len(cont)))
     return contigs
@@ -173,10 +175,11 @@ def std(vect_val):
 fonction de calculer le average weight
 """
 def path_average_weight(G,path):
-    weight = []
-    for i in enumerate(path):
-        weight.append(G.edges[path[i],path[i+1]]['weight'])
-    return statistics.mean(weight)
+    weight = 0
+    for i in path:
+        weight += G.out_degree(i, weight = "weight")
+    average_weight = weight / (len(path) - 1)
+    return average_weight
 """
 prend un graphe et une liste de chemin, la variable booléenne
 supprimer les paths de graph 
@@ -212,31 +215,24 @@ def remove_paths(G, path_list, delete_entry_node, delete_sink_node):
 
 def select_best_path(graph, path_list, path_length, weight_avg_list, 
                      delete_entry_node=False, delete_sink_node=False):
-    max_weight = max(weight_avg_list)
-    max_length = max(path_length)
-    pos_max = list(range(0,len(path_list)))
-    del_path = []
-    pos_tmp = list(pos_max)
-    if std(weight_avg_list)!=0:
-        for i in pos_max:
-            if weight_avg_list[i]<max_weight:
-                del_path.append(path_list)
-                pos_max.remove(i)
-    path_length = [path_length[i] for i in pos_max]
-    pos_tmp = list(pos_max)
+    max_weight = 0
+    meilleur_path_length = 0
+    meilleur_path_index = -1
 
-    if len(pos_max)>1 and std(path_length)!=0:
-        for i in pos_tmp:
-            if path_length[i]<max_length:
-                del_path.append(path_list[i])
-                pos_max.remove(i)
-    
-    if len(pos_max)>1:
-        indice = randint(0,len(pos_max))
-        pos_max.remove(indice)
-        for i in pos_max:
-            del_path.append(path_list[i])
-    return remove_paths(graph, del_path, delete_entry_node,delete_sink_node)
+    for index,weight in enumerate(weight_avg_list):
+        if weight > max_weight:
+            max_weight = weight
+            meilleur_path_length = path_length[index]
+            meilleur_path_index = index
+        elif weight == max_weight:
+            if meilleur_path_length < path_length[index]:
+                meilleur_path_length = path_length[index]
+                meilleur_path_index = index
+            elif meilleur_path_length == path_length[index]:
+                meilleur_path_index = random.choice([meilleur_path_index, index])
+    if meilleur_path_index == -1:
+        best_path_index = random.randint(0, len(path_list))
+    return remove_paths(graph, path_list[:meilleur_path_index]+path_list[meilleur_path_index+1:], delete_entry_node,delete_sink_node)
 
 """
 fonction détermine les chemins “simples” possible entre deux nœuds (un ancêtre et un descendant) et calculer la longueur et le poids de ces chemins. 
@@ -245,7 +241,7 @@ def solve_bubble(graph, ancestor_node, descendant_node):
     bubble_path = []
     bubble_length = []
     bubble_weight = []
-    for path in nx.allsimple_path(graph,ancestor_node,descendant_node):
+    for path in nx.all_simple_paths(graph,ancestor_node,descendant_node):
         bubble_path.append(path)
         bubble_length.append(len(path))
         bubble_weight.append(path_average_weight(graph,path))
@@ -257,12 +253,13 @@ prend un graphe “brut” et retourne un graphe sans bulle.
 def simplify_bubbles(graph):
     bubble = []
     for node in graph:
-        pred_node = list(graph.predecessors(node))
-        if len(pred_node)<2:
-            anc = nx.lowest_common_ancestor(graph, pred_node[0], pred_node[1]) # le plus petit ancetre commum
+        predecessors = list(graph.predecessors(node))
+        if len(predecessors)>1:
+
+            anc = nx.lowest_common_ancestor(graph, predecessors[0], predecessors[1],default=-1) # le plus petit ancetre commum
             bubble.append([anc,node])
-    for i in bubble:
-        graph = solve_bubble(graph,i[0],i[1])
+    for i in range(0,len(bubble)):
+        graph = solve_bubble(graph,bubble[i][0],bubble[i][1])
     return graph
 #######################################
 ## 3.Simplification du graphe de de bruijn
@@ -280,8 +277,8 @@ def solve_entry_tips(graph, starting_nodes):
     path_length = []
 
     for node in starting_nodes:
-        for next in nx.descendants(graph,node):
-            if len(graph.pred[next])>=2 and next not in ancestors:
+        for descendant in nx.descendants(graph,node):
+            if len(list(graph.predecessors(descendant)))>=2 and descendant not in ancestors:
                 ancestors.append(next)
     for node in starting_nodes:
         for i in ancestors:
@@ -360,7 +357,10 @@ def main():
     kmer_size = args.kmer_size
     fastq_file = args.fastq_file
     kmer_dict = build_kmer_dict(fastq_file,kmer_size)
+    # print(len(kmer_dict))
+    # print(kmer_dict)
     graph = build_graph(kmer_dict)
+    # print(len(graph))
 
     start_node = get_starting_nodes(graph)
     sink_node = get_sink_nodes(graph)
@@ -371,8 +371,11 @@ def main():
     graph = solve_out_tips(graph,sink_node)
 
     contig_list = get_contigs(graph,start_node, sink_node)
-
+    print(contig_list)
     save_contigs(contig_list, args.output_file)
+
+
+
     # Fonctions de dessin du graphe
     # A decommenter si vous souhaitez visualiser un petit 
     # graphe

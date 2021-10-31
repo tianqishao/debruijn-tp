@@ -92,6 +92,7 @@ def build_kmer_dict(fastq_file, kmer_size):
     kmer_dict = {}
     for i in read_fastq(fastq_file):
         for j in cut_kmer(i,kmer_size):
+            ##counts de kmer
             if j not in kmer_dict:
                 kmer_dict[j] = 1;
             else:
@@ -123,6 +124,7 @@ fonction de obtenir l'ensemble des noeuds d'entree
 def get_starting_nodes(G):
     start = []
     for node in G.nodes:
+        ### predecessors: Returns an iterator over predecessor nodes.
         predess = G.predecessors(node)
         if not list(predess): 
             start.append(node)
@@ -135,6 +137,7 @@ fonction de obtenir l'ensemble des noeuds de sortie
 def get_sink_nodes(G):
     end = []
     for node in G.nodes:
+        ## successors: Returns an iterator over successor nodes.
         success = G.successors(node)
         if not list(success): 
             end.append(node)
@@ -145,6 +148,7 @@ def get_contigs(G,start,end):
     contigs = []
     for s in start:
         for e in end:
+            ## Generate all simple paths in the graph G from source to target.
             for path in nx.all_simple_paths(G,s,e):
                 cont = path[0]
                 for i in path[1:]:
@@ -160,7 +164,9 @@ def save_contigs(contigs,file_name):
     if(isfile(file_name)):
         with open(file_name,"w") as file:
             for i,cont in enumerate(contigs):
+                ## contig,length
                 file.write(">contig_{} len = {}\n".format(i,cont[1]))
+                ## sequence
                 file.write(fill(cont[0]+"\n"))
 #######################################
 ## 3.Simplification du graphe de de bruijn
@@ -184,7 +190,6 @@ def path_average_weight(G,path):
 prend un graphe et une liste de chemin, la variable booléenne
 supprimer les paths de graph 
 """
-
 def remove_paths(graph, path_list, delete_entry_node, delete_sink_node):
     ## supprimer les multiples nodes
     for path in path_list:
@@ -197,24 +202,9 @@ def remove_paths(graph, path_list, delete_entry_node, delete_sink_node):
             graph.remove(path[-1])#sink
     return graph
 
-
-"""
-fonction de comparer et choisir le meulleur path,puis suppremer les path inutil
-"""
-def remove_paths(G, path_list, delete_entry_node, delete_sink_node):
-
-	for path in path_list: 
-		G.remove_nodes_from(path[1:-1]) 
-		if delete_entry_node: 
-			G.remove_node(path[0]) 
-		if delete_sink_node:
-			G.remove_node(path[-1])
-	return G	
-
-
-
 def select_best_path(graph, path_list, path_length, weight_avg_list, 
                      delete_entry_node=False, delete_sink_node=False):
+    
     max_weight = 0
     meilleur_path_length = 0
     meilleur_path_index = -1
@@ -231,7 +221,7 @@ def select_best_path(graph, path_list, path_length, weight_avg_list,
             elif meilleur_path_length == path_length[index]:
                 meilleur_path_index = random.choice([meilleur_path_index, index])
     if meilleur_path_index == -1:
-        best_path_index = random.randint(0, len(path_list))
+        meilleur_path_index = random.randint(0, len(path_list))
     return remove_paths(graph, path_list[:meilleur_path_index]+path_list[meilleur_path_index+1:], delete_entry_node,delete_sink_node)
 
 """
@@ -380,6 +370,9 @@ def main():
     # A decommenter si vous souhaitez visualiser un petit 
     # graphe
     # Plot the graph
+
+    ## probleme: peux pas plotter le diagramme avec la commande -f
+
     # if args.graphimg_file:
     #     draw_graph(graph, args.graphimg_file)
     # Save the graph in file

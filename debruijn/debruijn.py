@@ -210,14 +210,18 @@ def select_best_path(graph, path_list, path_length, weight_avg_list,
     meilleur_path_index = -1
 
     for index,weight in enumerate(weight_avg_list):
+        ## Si poids est supérieur à 0, c’est que nous avons des différences et nous sélectionnons le chemin dont le poids est le plus élevé.
         if weight > max_weight:
             max_weight = weight
             meilleur_path_length = path_length[index]
             meilleur_path_index = index
+        ## S’il est à 0 : Nous vérifions la longueur (écart type sur la longueur)
         elif weight == max_weight:
+            ## S’il est supérieur à 0, c’est que nous avons des différences et nous sélectionnons le chemin le plus long.
             if meilleur_path_length < path_length[index]:
                 meilleur_path_length = path_length[index]
                 meilleur_path_index = index
+            ## S’il est à 0 : Nous faisons un choix aléatoire
             elif meilleur_path_length == path_length[index]:
                 meilleur_path_index = random.choice([meilleur_path_index, index])
     if meilleur_path_index == -1:
@@ -245,9 +249,10 @@ def simplify_bubbles(graph):
     for node in graph:
         predecessors = list(graph.predecessors(node))
         if len(predecessors)>1:
-
-            anc = nx.lowest_common_ancestor(graph, predecessors[0], predecessors[1],default=-1) # le plus petit ancetre commum
-            bubble.append([anc,node])
+            ## Algorithms for finding the lowest common ancestor of kmer trees
+            ## Compute the lowest common ancestor of the given pair of nodes.
+            ancetre = nx.lowest_common_ancestor(graph, predecessors[0], predecessors[1],default=-1)
+            bubble.append([ancetre,node])
     for i in range(0,len(bubble)):
         graph = solve_bubble(graph,bubble[i][0],bubble[i][1])
     return graph
